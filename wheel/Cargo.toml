@@ -1,0 +1,22 @@
+[package]
+name = "clvk_rs"
+version = "0.16.0"
+authors = ["Richard Kiss <him@richardkiss.com>"]
+edition = "2021"
+license = "Apache-2.0"
+description = "Implementation of `clvk` for Chik Network's cryptocurrency"
+homepage = "https://github.com/Chik-Network/clvk_rs/"
+repository = "https://github.com/Chik-Network/clvk_rs/"
+readme = "../README.md"
+
+[lib]
+name = "clvk_rs"
+crate-type = ["cdylib"]
+path = "src/lib.rs"
+
+[dependencies]
+clvkr = { workspace = true }
+pyo3 = { workspace = true, features = ["abi3-py38", "extension-module"] }
+
+[features]
+openssl = ["clvkr/openssl"]

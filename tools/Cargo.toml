@@ -1,0 +1,45 @@
+[package]
+name = "clvk-rs-test-tools"
+version = "0.16.0"
+authors = ["Arvid Norberg <arvid@chiknetwork.com>", "Cameron Cooper <cameron@chiknetwork.com>"]
+edition = "2021"
+license = "Apache-2.0"
+description = "Developer tools for the CLVK interpreter"
+homepage = "https://github.com/Chik-Network/clvk_rs/tools/"
+repository = "https://github.com/Chik-Network/clvk_rs/tools/"
+readme = "README.md"
+
+[dependencies]
+hex-literal = { workspace = true }
+hex = { workspace = true }
+rand = { workspace = true }
+sha1 = { workspace = true }
+linreg = { workspace = true }
+clvkr = { workspace = true }
+chik-bls = { workspace = true }
+num-bigint = { workspace = true }
+num-integer = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
+rand_chacha = { workspace = true }
+
+[[bin]]
+name = "generate-fuzz-corpus"
+test = false
+bench = false
+
+[[bin]]
+name = "benchmark-clvk-cost"
+test = false
+bench = false
+
+[[bin]]
+name = "verify-zksnark"
+test = false
+bench = false
+
+[[bin]]
+name = "generate-modpow-tests"
+test = false
+bench = false
