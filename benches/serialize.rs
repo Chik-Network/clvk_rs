@@ -1,10 +1,10 @@
-use criterion::black_box;
-use criterion::{criterion_group, criterion_main, Criterion};
 use clvkr::allocator::Allocator;
 use clvkr::serde::{
     node_from_bytes, node_from_bytes_backrefs, node_to_bytes_backrefs, node_to_bytes_limit,
     Serializer,
 };
+use criterion::black_box;
+use criterion::{criterion_group, criterion_main, Criterion};
 use std::include_bytes;
 use std::time::Instant;
 

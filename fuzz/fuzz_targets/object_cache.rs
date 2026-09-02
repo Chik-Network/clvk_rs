@@ -4,9 +4,9 @@ mod make_tree;
 mod pick_node;
 mod serialized_len;
 
-use fuzzing_utils::tree_hash;
 use clvkr::serde::{serialized_length, treehash, ObjectCache};
 use clvkr::Allocator;
+use fuzzing_utils::tree_hash;
 use libfuzzer_sys::fuzz_target;
 use serialized_len::compute_serialized_len;
 
