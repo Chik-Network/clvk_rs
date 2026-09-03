@@ -1,14 +1,14 @@
 use clap::Parser;
 use clvkr::allocator::{Allocator, NodePtr};
 use clvkr::run_program::run_program;
-use clvkr::{ChikDialect, ENABLE_SHA256_TREE};
+use clvkr::{ChikDialect, ClvkFlags};
 use linreg::linear_regression_of;
 use rand::{Rng, RngCore, SeedableRng, rngs::StdRng};
 use std::fs::{File, create_dir_all};
 use std::io::{Write, sink};
 use std::time::Instant;
 
-const DIALECT_FLAGS: u32 = ENABLE_SHA256_TREE;
+const DIALECT_FLAGS: ClvkFlags = ClvkFlags::ENABLE_SHA256_TREE;
 
 // When specifying the signature of operators, some arguments may be fixed
 // constants. The None argument slots will be replaced by the benchmark for the
@@ -254,7 +254,7 @@ fn random_tree(a: &mut Allocator, rng: &mut StdRng, num_leafs: u32, leaf: NodePt
         return leaf;
     }
 
-    let pivot = rng.gen_range(1..num_leafs);
+    let pivot = rng.random_range(1..num_leafs);
     let left = random_tree(a, rng, pivot, leaf);
     let right = random_tree(a, rng, num_leafs - pivot, leaf);
     a.new_pair(left, right).expect("new_pair")

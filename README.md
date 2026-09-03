@@ -26,17 +26,10 @@ The fuzzing infrastructure for `clvk_rs` uses [cargo-fuzz](https://github.com/ru
 
 Documentation for setting up fuzzing in rust can be found [here](https://rust-fuzz.github.io/book/cargo-fuzz.html).
 
-To generate an initial corpus (for the `run_program` fuzzer), run:
-
-```
-cd tools
-cargo run generate-fuzz-corpus
-```
-
 To get started, run:
 
 ```
-cargo fuzz run fuzz_run_program --jobs=32 -- -rss_limit_mb=4096
+cargo fuzz run run-program --jobs=32 -- -rss_limit_mb=4096
 ```
 
 But with whatever number of jobs works best for you.

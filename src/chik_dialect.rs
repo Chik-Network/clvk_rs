@@ -1,4 +1,4 @@
-use crate::allocator::{Allocator, NodePtr};
+use crate::allocator::{Allocator, NodePtr, NodeVisitor};
 use crate::bls_ops::{
     op_bls_g1_multiply, op_bls_g1_negate, op_bls_g1_subtract, op_bls_g2_add, op_bls_g2_multiply,
     op_bls_g2_negate, op_bls_g2_subtract, op_bls_map_to_g1, op_bls_map_to_g2,
@@ -10,49 +10,79 @@ use crate::dialect::{Dialect, OperatorSet};
 use crate::error::EvalErr;
 use crate::keccak256_ops::op_keccak256;
 use crate::more_ops::{
-    op_add, op_all, op_any, op_ash, op_coinid, op_concat, op_div, op_div_limit, op_divmod,
-    op_divmod_limit, op_gr, op_gr_bytes, op_logand, op_logior, op_lognot, op_logxor, op_lsh,
-    op_mod, op_mod_limit, op_modpow, op_multiply, op_not, op_point_add, op_pubkey_for_exp,
-    op_sha256, op_strlen, op_substr, op_subtract, op_unknown,
+    op_add, op_all, op_any, op_ash, op_coinid, op_concat, op_div, op_divmod, op_gr, op_gr_bytes,
+    op_logand, op_logior, op_lognot, op_logxor, op_lsh, op_mod, op_modpow, op_multiply, op_not,
+    op_point_add, op_pubkey_for_exp, op_sha256, op_strlen, op_substr, op_subtract, op_unknown,
 };
 use crate::reduction::Response;
 use crate::secp_ops::{op_secp256k1_verify, op_secp256r1_verify};
 use crate::sha_tree_op::op_sha256_tree;
+use bitflags::bitflags;
 
-// require integers passed to operators use canonical representation, meaning no
-// unnecessary leading zeros
-pub const CANONICAL_INTS: u32 = 0x0001;
+bitflags! {
+    /// Type-safe CLVK dialect flags. Use for combining and checking flags only.
+    #[repr(transparent)]
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub struct ClvkFlags: u32 {
+        /// require integers passed to operators use canonical representation,
+        /// meaning no unnecessary leading zeros
+        const CANONICAL_INTS = 0x0001;
 
-// unknown operators are disallowed
-// (otherwise they are no-ops with well defined cost)
-pub const NO_UNKNOWN_OPS: u32 = 0x0002;
+        /// Unknown operators are disallowed (otherwise they are no-ops with
+        /// well defined cost).
+        const NO_UNKNOWN_OPS = 0x0002;
 
-// When set, limits the number of atom-bytes allowed to be allocated, as well as
-// the number of pairs
-pub const LIMIT_HEAP: u32 = 0x0004;
+        /// When set, limits the number of atom-bytes allowed to be allocated,
+        /// as well as the number of pairs.
+        const LIMIT_HEAP = 0x0004;
 
-// enables the keccak256 op *outside* the softfork guard.
-// This is a hard-fork and should only be enabled when it activates
-pub const ENABLE_KECCAK_OPS_OUTSIDE_GUARD: u32 = 0x0100;
+        /// Make bls_g1_negate and bls_g2_negate accept invalid points, as long
+        /// as they at least have the right number of bytes in the atoms.
+        /// Hard-fork; enable only when it activates.
+        const RELAXED_BLS = 0x0008;
 
-pub const DISABLE_OP: u32 = 0x200;
+        /// some limits for mempool mode
+        const LIMITS = 0x0010;
 
-// this flag enables the sha256tree op *outside* the softfork guard.
-// This is a hard-fork and should only be enabled when it activates.
-pub const ENABLE_SHA256_TREE: u32 = 0x0400;
+        /// When set, operators that return nil/one may be treated as GC
+        /// candidates (allocator checkpoint/restore). When not set,
+        /// gc_candidate() always returns false.
+        const ENABLE_GC = 0x0020;
 
-// The default mode when running generators in mempool-mode (i.e. the stricter
-// mode)
-pub const MEMPOOL_MODE: u32 = NO_UNKNOWN_OPS | LIMIT_HEAP | DISABLE_OP | CANONICAL_INTS;
+        /// Enables the keccak256 op *outside* the softfork guard. Hard-fork;
+        /// enable only when it activates.
+        const ENABLE_KECCAK_OPS_OUTSIDE_GUARD = 0x0100;
+
+        const DISABLE_OP = 0x200;
+
+        /// Enables the sha256tree op *outside* the softfork guard. Hard-fork;
+        /// enable only when it activates.
+        const ENABLE_SHA256_TREE = 0x0400;
+
+        /// Enables secp opcodes 64 (secp256k1_verify) and 65 (secp256r1_verify).
+        const ENABLE_SECP_OPS = 0x0800;
+
+        /// Use malachite-bigint instead of num-bigint for div, divmod, mod, and modpow.
+        const MALACHITE = 0x1000;
+    }
+}
+
+/// The default mode when running generators in mempool-mode (i.e. the stricter
+/// mode).
+pub const MEMPOOL_MODE: ClvkFlags = ClvkFlags::NO_UNKNOWN_OPS
+    .union(ClvkFlags::LIMIT_HEAP)
+    .union(ClvkFlags::DISABLE_OP)
+    .union(ClvkFlags::CANONICAL_INTS)
+    .union(ClvkFlags::LIMITS);
 
 fn unknown_operator(
     allocator: &mut Allocator,
     o: NodePtr,
     args: NodePtr,
-    flags: u32,
+    flags: ClvkFlags,
     max_cost: Cost,
 ) -> Response {
-    if (flags & NO_UNKNOWN_OPS) != 0 {
+    if flags.contains(ClvkFlags::NO_UNKNOWN_OPS) {
         Err(EvalErr::Unimplemented(o))?
     } else {
         op_unknown(allocator, o, args, max_cost)
@@ -60,16 +90,49 @@ fn unknown_operator(
 }
 
 pub struct ChikDialect {
-    flags: u32,
+    flags: ClvkFlags,
 }
 
 impl ChikDialect {
-    pub fn new(flags: u32) -> ChikDialect {
+    pub fn new(flags: ClvkFlags) -> ChikDialect {
         ChikDialect { flags }
     }
 }
 
+impl Default for ChikDialect {
+    fn default() -> Self {
+        ChikDialect {
+            flags: ClvkFlags::empty(),
+        }
+    }
+}
+
 impl Dialect for ChikDialect {
+    // determine whether the specified operator is a candidate for garbage
+    // collection, meaning we save the state of the Allocator and potentially
+    // restore it once the operator returns
+    fn gc_candidate(&self, allocator: &Allocator, op: NodePtr) -> bool {
+        if !self.flags.contains(ClvkFlags::ENABLE_GC) {
+            return false;
+        }
+        // apply listp eq gr_bytes sha256 strlen add subtract multiply
+        // div divmod gr ash lsh logand logior logxor lognot point_add
+        // pubkey_for_exp not any all coinid bls_g1_subtract
+        // bls_g1_multiply bls_g1_negate bls_g2_add bls_g2_subtract
+        // bls_g2_multiply bls_g2_negate bls_map_to_g1
+        // bls_pairing_identity bls_verify modpow mod keccak256
+        // sha256_tree
+        #[allow(clippy::match_like_matches_macro)]
+        match allocator.node(op) {
+            NodeVisitor::U32(
+                2 | 7 | 9 | 10 | 11 | 13 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26
+                | 27 | 29 | 30 | 32 | 33 | 34 | 48 | 49 | 50 | 51 | 56 | 58 | 59 | 60 | 61 | 62
+                | 63,
+            ) => true,
+            _ => false,
+        }
+    }
+
     fn op(
         &self,
         allocator: &mut Allocator,
@@ -81,13 +144,13 @@ impl Dialect for ChikDialect {
         let flags = self.flags
             | match extension {
                 // This is the default set of operators, so no special flags need to be added.
-                OperatorSet::Default => 0,
+                OperatorSet::Default => ClvkFlags::empty(),
 
                 // Since BLS has been hardforked in universally, this has no effect.
-                OperatorSet::Bls => 0,
+                OperatorSet::Bls => ClvkFlags::empty(),
 
                 // Keccak is allowed as if it were a default operator, inside of the softfork guard.
-                OperatorSet::Keccak => ENABLE_KECCAK_OPS_OUTSIDE_GUARD,
+                OperatorSet::Keccak => ClvkFlags::ENABLE_KECCAK_OPS_OUTSIDE_GUARD,
             };
 
         let op_len = allocator.atom_len(o);
@@ -116,7 +179,7 @@ impl Dialect for ChikDialect {
                     return unknown_operator(allocator, o, argument_list, flags, max_cost);
                 }
             };
-            return f(allocator, argument_list, max_cost);
+            return f(allocator, argument_list, max_cost, flags);
         }
         if op_len != 1 {
             return unknown_operator(allocator, o, argument_list, flags, max_cost);
@@ -143,20 +206,8 @@ impl Dialect for ChikDialect {
             16 => op_add,
             17 => op_subtract,
             18 => op_multiply,
-            19 => {
-                if (flags & DISABLE_OP) != 0 {
-                    op_div_limit
-                } else {
-                    op_div
-                }
-            }
-            20 => {
-                if (flags & DISABLE_OP) != 0 {
-                    op_divmod_limit
-                } else {
-                    op_divmod
-                }
-            }
+            19 => op_div,
+            20 => op_divmod,
             21 => op_gr,
             22 => op_ash,
             23 => op_lsh,
@@ -186,26 +237,21 @@ impl Dialect for ChikDialect {
             58 => op_bls_pairing_identity,
             59 => op_bls_verify,
             60 => {
-                if (flags & DISABLE_OP) != 0 {
+                if flags.contains(ClvkFlags::DISABLE_OP) {
                     return Err(EvalErr::Unimplemented(o))?;
-                } else {
-                    op_modpow
                 }
+                op_modpow
             }
-            61 => {
-                if (flags & DISABLE_OP) != 0 {
-                    op_mod_limit
-                } else {
-                    op_mod
-                }
-            }
-            62 if (flags & ENABLE_KECCAK_OPS_OUTSIDE_GUARD) != 0 => op_keccak256,
-            63 if (flags & ENABLE_SHA256_TREE) != 0 => op_sha256_tree,
+            61 => op_mod,
+            62 if flags.contains(ClvkFlags::ENABLE_KECCAK_OPS_OUTSIDE_GUARD) => op_keccak256,
+            63 if flags.contains(ClvkFlags::ENABLE_SHA256_TREE) => op_sha256_tree,
+            64 if flags.contains(ClvkFlags::ENABLE_SECP_OPS) => op_secp256k1_verify,
+            65 if flags.contains(ClvkFlags::ENABLE_SECP_OPS) => op_secp256r1_verify,
             _ => {
                 return unknown_operator(allocator, o, argument_list, flags, max_cost);
             }
         };
-        f(allocator, argument_list, max_cost)
+        f(allocator, argument_list, max_cost, flags)
     }
 
     fn quote_kw(&self) -> u32 {
@@ -237,10 +283,31 @@ impl Dialect for ChikDialect {
     }
 
     fn allow_unknown_ops(&self) -> bool {
-        (self.flags & NO_UNKNOWN_OPS) == 0
+        !self.flags.contains(ClvkFlags::NO_UNKNOWN_OPS)
     }
 
-    fn flags(&self) -> u32 {
+    fn flags(&self) -> ClvkFlags {
         self.flags
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bitflags::Flags;
+
+    #[test]
+    fn no_overlapping_flags() {
+        for (i, a) in ClvkFlags::FLAGS.iter().enumerate() {
+            for b in &ClvkFlags::FLAGS[i + 1..] {
+                assert_eq!(
+                    a.value().bits() & b.value().bits(),
+                    0,
+                    "flags {} and {} overlap",
+                    a.name(),
+                    b.name()
+                );
+            }
+        }
     }
 }

@@ -1,8 +1,8 @@
 use clap::Parser;
-use clvkr::ChikDialect;
 use clvkr::allocator::{Allocator, NodePtr};
 use clvkr::reduction::Reduction;
 use clvkr::serde::node_to_bytes_backrefs;
+use clvkr::{ChikDialect, ClvkFlags};
 use rand::{Rng, SeedableRng, rngs::StdRng};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
@@ -148,7 +148,7 @@ pub fn main() {
 
         let max_cost = std::cmp::max(1, 11_000_000_000 - bytes.len() as u64 * 12_000);
 
-        let dialect = ChikDialect::new(0);
+        let dialect = ChikDialect::new(ClvkFlags::ENABLE_GC);
         let start = Instant::now();
         let Reduction(cost, _) =
             clvkr::run_program(&mut a, &dialect, program, NodePtr::NIL, 20_000_000_000)

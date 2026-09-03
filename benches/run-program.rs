@@ -1,5 +1,5 @@
 use clvkr::allocator::{Allocator, NodePtr};
-use clvkr::chik_dialect::ChikDialect;
+use clvkr::chik_dialect::{ChikDialect, ClvkFlags};
 use clvkr::serde::node_from_bytes_backrefs;
 use criterion::{Criterion, SamplingMode, criterion_group, criterion_main};
 use std::fs::read_to_string;
@@ -192,7 +192,7 @@ type EnvFn = fn(&mut Allocator) -> NodePtr;
 
 fn run_program_benchmark(c: &mut Criterion) {
     let mut a = Allocator::new();
-    let dialect = ChikDialect::new(0);
+    let dialect = ChikDialect::new(ClvkFlags::ENABLE_GC);
 
     let test_case_checkpoint = a.checkpoint();
 

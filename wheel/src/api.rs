@@ -5,9 +5,7 @@ use super::lazy_node::LazyNode;
 use crate::adapt_response::adapt_response;
 use clvkr::allocator::Allocator;
 use clvkr::chik_dialect::ChikDialect;
-use clvkr::chik_dialect::{
-    CANONICAL_INTS, DISABLE_OP, ENABLE_SHA256_TREE, LIMIT_HEAP, MEMPOOL_MODE, NO_UNKNOWN_OPS,
-};
+use clvkr::chik_dialect::{ClvkFlags, MEMPOOL_MODE};
 use clvkr::cost::Cost;
 use clvkr::error::EvalErr;
 use clvkr::reduction::Response;
@@ -15,7 +13,6 @@ use clvkr::run_program::run_program;
 use clvkr::serde::{ParsedTriple, node_from_bytes, parse_triples, serialized_length_from_bytes};
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyTuple};
-use pyo3::wrap_pyfunction;
 
 fn eval_to_py(err: EvalErr) -> PyErr {
     // Rarely Used in python bindings.
@@ -35,7 +32,8 @@ pub fn run_serialized_chik_program(
     max_cost: Cost,
     flags: u32,
 ) -> PyResult<(u64, LazyNode)> {
-    let mut allocator = if flags & LIMIT_HEAP != 0 {
+    let flags = ClvkFlags::from_bits_truncate(flags);
+    let mut allocator = if flags.contains(ClvkFlags::LIMIT_HEAP) {
         Allocator::new_limited(500000000)
     } else {
         Allocator::new()
@@ -46,39 +44,43 @@ pub fn run_serialized_chik_program(
         let args = node_from_bytes(&mut allocator, args).map_err(eval_to_py)?;
         let dialect = ChikDialect::new(flags);
 
-        Ok(py.allow_threads(|| run_program(&mut allocator, &dialect, program, args, max_cost)))
+        Ok(py.detach(|| run_program(&mut allocator, &dialect, program, args, max_cost)))
     })()?;
     adapt_response(py, allocator, r)
 }
 
-fn tuple_for_parsed_triple(py: Python<'_>, p: &ParsedTriple) -> PyObject {
+fn tuple_for_parsed_triple(py: Python<'_>, p: &ParsedTriple) -> PyResult<Py<PyAny>> {
     let tuple = match p {
         ParsedTriple::Atom {
             start,
             end,
             atom_offset,
-        } => PyTuple::new_bound(py, [*start, *end, *atom_offset as u64]),
+        } => PyTuple::new(py, [*start, *end, *atom_offset as u64])?,
         ParsedTriple::Pair {
             start,
             end,
             right_index,
-        } => PyTuple::new_bound(py, [*start, *end, *right_index as u64]),
+        } => PyTuple::new(py, [*start, *end, *right_index as u64])?,
     };
-    tuple.into_py(py)
+    Ok(tuple.unbind().into_any())
 }
 
 #[pyfunction]
+#[allow(clippy::type_complexity)]
 fn deserialize_as_tree(
     py: Python,
     blob: &[u8],
     calculate_tree_hashes: bool,
-) -> PyResult<(Vec<PyObject>, Option<Vec<PyObject>>)> {
+) -> PyResult<(Vec<Py<PyAny>>, Option<Vec<Py<PyAny>>>)> {
     let mut cursor = io::Cursor::new(blob);
     let (r, tree_hashes) = parse_triples(&mut cursor, calculate_tree_hashes).map_err(eval_to_py)?;
-    let r = r.iter().map(|pt| tuple_for_parsed_triple(py, pt)).collect();
+    let r = r
+        .iter()
+        .map(|pt| tuple_for_parsed_triple(py, pt))
+        .collect::<PyResult<Vec<_>>>()?;
     let s = tree_hashes.map(|ths| {
         ths.iter()
-            .map(|b| PyBytes::new_bound(py, b).into())
+            .map(|b| PyBytes::new(py, b).unbind().into_any())
             .collect()
     });
     Ok((r, s))
@@ -90,12 +92,13 @@ fn clvk_rs(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(serialized_length, m)?)?;
     m.add_function(wrap_pyfunction!(deserialize_as_tree, m)?)?;
 
-    m.add("NO_UNKNOWN_OPS", NO_UNKNOWN_OPS)?;
-    m.add("LIMIT_HEAP", LIMIT_HEAP)?;
-    m.add("MEMPOOL_MODE", MEMPOOL_MODE)?;
-    m.add("ENABLE_SHA256_TREE", ENABLE_SHA256_TREE)?;
-    m.add("DISABLE_OP", DISABLE_OP)?;
-    m.add("CANONICAL_INTS", CANONICAL_INTS)?;
+    m.add("NO_UNKNOWN_OPS", ClvkFlags::NO_UNKNOWN_OPS.bits())?;
+    m.add("LIMIT_HEAP", ClvkFlags::LIMIT_HEAP.bits())?;
+    m.add("MEMPOOL_MODE", MEMPOOL_MODE.bits())?;
+    m.add("ENABLE_SHA256_TREE", ClvkFlags::ENABLE_SHA256_TREE.bits())?;
+    m.add("ENABLE_SECP_OPS", ClvkFlags::ENABLE_SECP_OPS.bits())?;
+    m.add("DISABLE_OP", ClvkFlags::DISABLE_OP.bits())?;
+    m.add("CANONICAL_INTS", ClvkFlags::CANONICAL_INTS.bits())?;
     m.add_class::<LazyNode>()?;
 
     Ok(())

@@ -1,6 +1,6 @@
 [package]
 name = "clvk-rs-test-tools"
-version = "0.16.5"
+version = "0.17.7"
 authors = ["Arvid Norberg <arvid@chiknetwork.com>", "Cameron Cooper <cameron@chiknetwork.com>"]
 edition = "2024"
 license = "Apache-2.0"
@@ -10,13 +10,15 @@ repository = "https://github.com/Chik-Network/clvk_rs/tools/"
 readme = "README.md"
 publish = false
 
+[features]
+openssl = ["clvkr/openssl"]
+
 [dependencies]
-hex-literal = { workspace = true }
 hex = { workspace = true }
 rand = { workspace = true }
-sha1 = { workspace = true }
 linreg = { workspace = true }
-clvkr = { workspace = true }
+bitflags = { workspace = true }
+clvkr = { workspace = true, features = ["counters"] }
 chik-bls = { workspace = true }
 num-bigint = { workspace = true }
 num-integer = { workspace = true }
@@ -24,11 +26,6 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
 rand_chacha = { workspace = true }
-
-[[bin]]
-name = "generate-fuzz-corpus"
-test = false
-bench = false
 
 [[bin]]
 name = "benchmark-clvk-cost"
@@ -47,5 +44,10 @@ bench = false
 
 [[bin]]
 name = "generate-stress-tests"
+test = false
+bench = false
+
+[[bin]]
+name = "run-clvk"
 test = false
 bench = false

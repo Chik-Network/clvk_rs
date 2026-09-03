@@ -1,4 +1,5 @@
 use crate::allocator::{Allocator, NodePtr};
+use crate::chik_dialect::ClvkFlags;
 use crate::cost::Cost;
 use crate::reduction::Response;
 
@@ -23,7 +24,8 @@ pub trait Dialect {
     fn apply_kw(&self) -> u32;
     fn softfork_kw(&self) -> u32;
     fn softfork_extension(&self, ext: u32) -> OperatorSet;
-    fn flags(&self) -> u32;
+    fn flags(&self) -> ClvkFlags;
+    fn gc_candidate(&self, allocator: &Allocator, op: NodePtr) -> bool;
     fn op(
         &self,
         allocator: &mut Allocator,

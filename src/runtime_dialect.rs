@@ -1,5 +1,5 @@
 use crate::allocator::{Allocator, NodePtr};
-use crate::chik_dialect::NO_UNKNOWN_OPS;
+use crate::chik_dialect::ClvkFlags;
 use crate::cost::Cost;
 use crate::dialect::{Dialect, OperatorSet};
 use crate::error::EvalErr;
@@ -13,7 +13,7 @@ pub struct RuntimeDialect {
     quote_kw: Vec<u8>,
     apply_kw: Vec<u8>,
     softfork_kw: Vec<u8>,
-    flags: u32,
+    flags: ClvkFlags,
 }
 
 impl RuntimeDialect {
@@ -21,7 +21,7 @@ impl RuntimeDialect {
         op_map: HashMap<String, Vec<u8>>,
         quote_kw: Vec<u8>,
         apply_kw: Vec<u8>,
-        flags: u32,
+        flags: ClvkFlags,
     ) -> RuntimeDialect {
         RuntimeDialect {
             f_lookup: f_lookup_for_hashmap(op_map),
@@ -34,6 +34,9 @@ impl RuntimeDialect {
 }
 
 impl Dialect for RuntimeDialect {
+    fn gc_candidate(&self, _allocator: &Allocator, _op: NodePtr) -> bool {
+        false
+    }
     fn op(
         &self,
         allocator: &mut Allocator,
@@ -48,9 +51,9 @@ impl Dialect for RuntimeDialect {
         if b.len() == 1
             && let Some(f) = self.f_lookup[b[0] as usize]
         {
-            return f(allocator, argument_list, max_cost);
+            return f(allocator, argument_list, max_cost, self.flags);
         }
-        if (self.flags & NO_UNKNOWN_OPS) != 0 {
+        if self.flags.contains(ClvkFlags::NO_UNKNOWN_OPS) {
             Err(EvalErr::Unimplemented(o))?
         } else {
             op_unknown(allocator, o, argument_list, max_cost)
@@ -72,10 +75,10 @@ impl Dialect for RuntimeDialect {
     }
 
     fn allow_unknown_ops(&self) -> bool {
-        (self.flags & NO_UNKNOWN_OPS) == 0
+        !self.flags.contains(ClvkFlags::NO_UNKNOWN_OPS)
     }
 
-    fn flags(&self) -> u32 {
+    fn flags(&self) -> ClvkFlags {
         self.flags
     }
 }
