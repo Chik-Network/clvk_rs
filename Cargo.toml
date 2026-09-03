@@ -41,7 +41,7 @@ lto = "thin"
 clvkr = { path = ".", version = "0.16.1" }
 clvk-fuzzing = { path = "./clvk-fuzzing", version = "0.16.1" }
 lazy_static = "1.5.0"
-num-bigint = "0.4.6"
+num-bigint = "0.5.1"
 num-traits = "0.2.19"
 num-integer = "0.1.46"
 chik-bls = "0.28.1"
