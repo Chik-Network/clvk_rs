@@ -1,6 +1,6 @@
 #![no_main]
 
-use clvk_fuzzing::{node_eq, ArbitraryClvkTree};
+use clvk_fuzzing::{ArbitraryClvkTree, node_eq};
 use clvkr::allocator::Allocator;
 use clvkr::serde::{
     node_from_bytes_backrefs, node_from_bytes_backrefs_old, node_to_bytes_backrefs,

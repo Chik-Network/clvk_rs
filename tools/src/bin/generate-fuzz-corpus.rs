@@ -1,10 +1,10 @@
 use clvkr::serde::write_atom::write_atom;
 use hex_literal::hex;
-use rand::rngs::StdRng;
 use rand::Rng;
 use rand::SeedableRng;
+use rand::rngs::StdRng;
 use sha1::{Digest, Sha1};
-use std::fs::{create_dir_all, File};
+use std::fs::{File, create_dir_all};
 use std::io::Write;
 
 #[repr(u8)]
@@ -432,7 +432,7 @@ fn generate_program<R: Rng>(op: &OperatorInfo, rng: &mut R, buffer: &mut Vec<u8>
 fn generate_args<R: Rng>(op: &OperatorInfo, rng: &mut R, buffer: &mut Vec<u8>) {
     for arg in op.operands {
         buffer.push(0xff); // cons
-                           // quoted value
+        // quoted value
         buffer.push(0xff); // cons
         buffer.push(1); // quote
         generate(*arg, rng, buffer);
@@ -444,7 +444,7 @@ fn generate<R: Rng>(t: Type, rng: &mut R, buffer: &mut Vec<u8>) {
     match t {
         Type::Tree => {
             buffer.push(0xff); // cons
-                               // 10% to keep growing the tree
+            // 10% to keep growing the tree
             let left_side = if rng.gen_bool(0.1) {
                 Type::Tree
             } else {

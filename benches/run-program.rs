@@ -1,7 +1,7 @@
 use clvkr::allocator::{Allocator, NodePtr};
 use clvkr::chik_dialect::ChikDialect;
 use clvkr::serde::node_from_bytes_backrefs;
-use criterion::{criterion_group, criterion_main, Criterion, SamplingMode};
+use criterion::{Criterion, SamplingMode, criterion_group, criterion_main};
 use std::fs::read_to_string;
 use std::time::Instant;
 

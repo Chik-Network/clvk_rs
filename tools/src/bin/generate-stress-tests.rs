@@ -1,11 +1,11 @@
 use clap::Parser;
+use clvkr::ChikDialect;
 use clvkr::allocator::{Allocator, NodePtr};
 use clvkr::reduction::Reduction;
 use clvkr::serde::node_to_bytes_backrefs;
-use clvkr::ChikDialect;
-use rand::{rngs::StdRng, Rng, SeedableRng};
-use std::collections::hash_map::Entry;
+use rand::{Rng, SeedableRng, rngs::StdRng};
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::time::Instant;
 
 /// Generate artificial high-demand CLVK programs as stress tests for the

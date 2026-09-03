@@ -1,7 +1,7 @@
 #![no_main]
 
 use clvk_fuzzing::{make_tree_limits, node_eq};
-use clvkr::serde::{node_from_bytes_backrefs, Serializer};
+use clvkr::serde::{Serializer, node_from_bytes_backrefs};
 use clvkr::{Allocator, NodePtr, SExp};
 use libfuzzer_sys::fuzz_target;
 use std::collections::HashMap;

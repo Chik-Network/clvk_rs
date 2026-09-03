@@ -1,13 +1,13 @@
 #![no_main]
 
-use clvk_fuzzing::{node_eq, ArbitraryClvkTree};
+use clvk_fuzzing::{ArbitraryClvkTree, node_eq};
 use clvkr::allocator::{Allocator, NodePtr, SExp};
 use clvkr::error::Result;
-use clvkr::serde::node_from_bytes_backrefs;
-use clvkr::serde::write_atom::write_atom;
 use clvkr::serde::ReadCacheLookup;
 use clvkr::serde::TreeCache;
-use clvkr::serde::{serialized_length, treehash, ObjectCache};
+use clvkr::serde::node_from_bytes_backrefs;
+use clvkr::serde::write_atom::write_atom;
+use clvkr::serde::{ObjectCache, serialized_length, treehash};
 use libfuzzer_sys::fuzz_target;
 use std::io::Cursor;
 use std::io::Write;

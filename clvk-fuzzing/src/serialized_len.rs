@@ -1,7 +1,7 @@
 use clvkr::serde::node_to_bytes;
 use clvkr::{Allocator, NodePtr, SExp};
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 
 enum Op {
     Cons(NodePtr),

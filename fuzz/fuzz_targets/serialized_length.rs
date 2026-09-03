@@ -1,8 +1,8 @@
 #![no_main]
+use clvkr::Allocator;
 use clvkr::serde::node_from_bytes_backrefs;
 use clvkr::serde::node_to_bytes;
 use clvkr::serde::serialized_length_from_bytes;
-use clvkr::Allocator;
 use libfuzzer_sys::fuzz_target;
 
 fuzz_target!(|data: &[u8]| {

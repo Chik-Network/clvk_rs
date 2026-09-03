@@ -1,9 +1,9 @@
 #![no_main]
 
+use clvkr::Allocator;
 use clvkr::serde::is_canonical_serialization;
 use clvkr::serde::{node_from_stream, node_to_bytes};
-use clvkr::Allocator;
-use libfuzzer_sys::{fuzz_target, Corpus};
+use libfuzzer_sys::{Corpus, fuzz_target};
 use std::io::Cursor;
 
 fuzz_target!(|data: &[u8]| -> Corpus {

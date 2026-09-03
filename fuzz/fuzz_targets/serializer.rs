@@ -1,7 +1,7 @@
 #![no_main]
 
-use clvk_fuzzing::{node_eq, ArbitraryClvkTree};
-use clvkr::serde::{node_from_bytes_backrefs, node_to_bytes_backrefs, Serializer};
+use clvk_fuzzing::{ArbitraryClvkTree, node_eq};
+use clvkr::serde::{Serializer, node_from_bytes_backrefs, node_to_bytes_backrefs};
 
 use libfuzzer_sys::fuzz_target;
 

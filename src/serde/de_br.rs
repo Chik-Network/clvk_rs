@@ -253,7 +253,7 @@ mod tests {
         #[case] serialization_as_hex: &str,
         #[case] expected_hash_as_hex: &str,
     ) {
-        use crate::serde::object_cache::{treehash, ObjectCache};
+        use crate::serde::object_cache::{ObjectCache, treehash};
         let buf = Vec::from_hex(serialization_as_hex).unwrap();
         let mut allocator = Allocator::new();
         let node = node_from_bytes_backrefs(&mut allocator, &buf).unwrap();

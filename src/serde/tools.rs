@@ -112,7 +112,7 @@ pub fn tree_hash_from_stream(f: &mut Cursor<&[u8]>) -> Result<[u8; 32]> {
 pub fn serialized_length_from_bytes(b: &[u8]) -> Result<u64> {
     use crate::serde::parse_atom::parse_path;
     use crate::traverse_path::traverse_path;
-    use crate::{allocator::SExp, Allocator};
+    use crate::{Allocator, allocator::SExp};
 
     let mut f = Cursor::new(b);
     let mut b = [0; 1];
@@ -238,9 +238,9 @@ pub fn is_canonical_serialization(b: &[u8]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Allocator;
     use crate::error::EvalErr;
     use crate::serde::node_from_bytes_backrefs;
-    use crate::Allocator;
     use hex::FromHex;
     use rstest::rstest;
 

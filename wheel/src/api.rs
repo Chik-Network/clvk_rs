@@ -12,7 +12,7 @@ use clvkr::cost::Cost;
 use clvkr::error::EvalErr;
 use clvkr::reduction::Response;
 use clvkr::run_program::run_program;
-use clvkr::serde::{node_from_bytes, parse_triples, serialized_length_from_bytes, ParsedTriple};
+use clvkr::serde::{ParsedTriple, node_from_bytes, parse_triples, serialized_length_from_bytes};
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyTuple};
 use pyo3::wrap_pyfunction;

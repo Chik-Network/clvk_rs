@@ -1,8 +1,8 @@
 #![no_main]
 use clvk_fuzzing::{compute_serialized_len, make_tree_limits, pick_node, tree_hash};
 
-use clvkr::serde::{serialized_length, treehash, ObjectCache};
 use clvkr::Allocator;
+use clvkr::serde::{ObjectCache, serialized_length, treehash};
 use libfuzzer_sys::fuzz_target;
 
 fuzz_target!(|data: &[u8]| {
