@@ -27,8 +27,9 @@ fuzz_target!(|data: &[u8]| -> Corpus {
         ClvkFlags::NO_UNKNOWN_OPS,
         MEMPOOL_MODE,
         ClvkFlags::LIMIT_SOFTFORK,
+        ClvkFlags::NEW_COST_MODEL,
     ] {
-        let dialect = ChikDialect::new(flags.union(ClvkFlags::DISABLE_OP));
+        let dialect = ChikDialect::new(flags.union(ClvkFlags::DISABLE_OP).union(ClvkFlags::LIMITS));
         allocator.restore_checkpoint(&allocator_checkpoint);
 
         let result = run_program(

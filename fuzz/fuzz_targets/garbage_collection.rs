@@ -22,7 +22,7 @@ fuzz_target!(|data: &[u8]| -> Corpus {
         let Ok(program) = make_clvk_program(&mut a, &mut unstructured, args, 100_000) else {
             return Corpus::Reject;
         };
-        let dialect = ChikDialect::new(flags);
+        let dialect = ChikDialect::new(flags.union(ClvkFlags::LIMITS));
         let result = run_program(&mut a, &dialect, program, args, MAX_COST);
         results.push((result, a));
     }
