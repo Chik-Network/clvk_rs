@@ -48,7 +48,7 @@ chik-bls = "0.28.1"
 chik-sha2 = "0.34.0"
 hex-literal = "0.4.1"
 # for secp sigs
-k256 = "0.13.4"
+k256 = "0.14.0"
 p256 = "0.13.2"
 rstest = "0.21.0"
 criterion = "0.5.1"
