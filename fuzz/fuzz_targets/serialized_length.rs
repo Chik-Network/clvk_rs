@@ -19,7 +19,9 @@ fuzz_target!(|data: &[u8]| {
             // this is expected
         }
         (Ok(len), Err(e)) => {
-            panic!("discrepancy between serialized_length and node_from_bytes_backrefs().\n {len}\n{e}");
+            panic!(
+                "discrepancy between serialized_length and node_from_bytes_backrefs().\n {len}\n{e}"
+            );
         }
         (Err(e), Ok(program)) => {
             panic!(

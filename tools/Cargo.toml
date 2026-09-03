@@ -1,13 +1,14 @@
 [package]
 name = "clvk-rs-test-tools"
-version = "0.16.0"
+version = "0.16.5"
 authors = ["Arvid Norberg <arvid@chiknetwork.com>", "Cameron Cooper <cameron@chiknetwork.com>"]
-edition = "2021"
+edition = "2024"
 license = "Apache-2.0"
 description = "Developer tools for the CLVK interpreter"
 homepage = "https://github.com/Chik-Network/clvk_rs/tools/"
 repository = "https://github.com/Chik-Network/clvk_rs/tools/"
 readme = "README.md"
+publish = false
 
 [dependencies]
 hex-literal = { workspace = true }
@@ -41,5 +42,10 @@ bench = false
 
 [[bin]]
 name = "generate-modpow-tests"
+test = false
+bench = false
+
+[[bin]]
+name = "generate-stress-tests"
 test = false
 bench = false

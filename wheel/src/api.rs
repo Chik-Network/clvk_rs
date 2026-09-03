@@ -5,12 +5,14 @@ use super::lazy_node::LazyNode;
 use crate::adapt_response::adapt_response;
 use clvkr::allocator::Allocator;
 use clvkr::chik_dialect::ChikDialect;
+use clvkr::chik_dialect::{
+    CANONICAL_INTS, DISABLE_OP, ENABLE_SHA256_TREE, LIMIT_HEAP, MEMPOOL_MODE, NO_UNKNOWN_OPS,
+};
 use clvkr::cost::Cost;
 use clvkr::error::EvalErr;
 use clvkr::reduction::Response;
 use clvkr::run_program::run_program;
 use clvkr::serde::{node_from_bytes, parse_triples, serialized_length_from_bytes, ParsedTriple};
-use clvkr::{LIMIT_HEAP, MEMPOOL_MODE, NO_UNKNOWN_OPS};
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyTuple};
 use pyo3::wrap_pyfunction;
@@ -91,6 +93,9 @@ fn clvk_rs(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("NO_UNKNOWN_OPS", NO_UNKNOWN_OPS)?;
     m.add("LIMIT_HEAP", LIMIT_HEAP)?;
     m.add("MEMPOOL_MODE", MEMPOOL_MODE)?;
+    m.add("ENABLE_SHA256_TREE", ENABLE_SHA256_TREE)?;
+    m.add("DISABLE_OP", DISABLE_OP)?;
+    m.add("CANONICAL_INTS", CANONICAL_INTS)?;
     m.add_class::<LazyNode>()?;
 
     Ok(())

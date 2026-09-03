@@ -1,7 +1,7 @@
 #![no_main]
-use libfuzzer_sys::fuzz_target;
 
-mod make_tree;
+use clvk_fuzzing::make_tree;
+use libfuzzer_sys::fuzz_target;
 
 use clvkr::allocator::{Allocator, NodePtr};
 use clvkr::bls_ops::{
@@ -20,10 +20,11 @@ use clvkr::more_ops::{
 };
 use clvkr::reduction::Response;
 use clvkr::secp_ops::{op_secp256k1_verify, op_secp256r1_verify};
+use clvkr::sha_tree_op::op_sha256_tree;
 
 type Opf = fn(&mut Allocator, NodePtr, Cost) -> Response;
 
-const FUNS: [Opf; 46] = [
+const FUNS: [Opf; 47] = [
     op_if as Opf,
     op_cons as Opf,
     op_first as Opf,
@@ -73,12 +74,14 @@ const FUNS: [Opf; 46] = [
     op_secp256r1_verify as Opf,
     // keccak operator
     op_keccak256 as Opf,
+    // shatree operator
+    op_sha256_tree as Opf,
 ];
 
 fuzz_target!(|data: &[u8]| {
     let mut unstructured = arbitrary::Unstructured::new(data);
     let mut allocator = Allocator::new();
-    let (args, _) = make_tree::make_tree(&mut allocator, &mut unstructured);
+    let (args, _) = make_tree(&mut allocator, &mut unstructured);
 
     let allocator_checkpoint = allocator.checkpoint();
 

@@ -1,0 +1,20 @@
+[package]
+name = "clvk-fuzzing"
+version = "0.16.5"
+edition = "2024"
+license = "Apache-2.0"
+description = "Fuzzing tools for clvk Projects on Rust"
+authors = ["Jack Nelson <j.nelson@chiknetwork.com>"]
+homepage = "https://github.com/Chik-Network/clvk_rs"
+repository = "https://github.com/Chik-Network/clvk_rs"
+
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+arbitrary = { workspace = true, features = ["derive"] }
+clvkr = { workspace = true }
+chik-sha2 = { workspace = true }
+anyhow = { workspace = true }
+

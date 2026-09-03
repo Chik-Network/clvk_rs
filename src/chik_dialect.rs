@@ -10,12 +10,18 @@ use crate::dialect::{Dialect, OperatorSet};
 use crate::error::EvalErr;
 use crate::keccak256_ops::op_keccak256;
 use crate::more_ops::{
-    op_add, op_all, op_any, op_ash, op_coinid, op_concat, op_div, op_divmod, op_gr, op_gr_bytes,
-    op_logand, op_logior, op_lognot, op_logxor, op_lsh, op_mod, op_modpow, op_multiply, op_not,
-    op_point_add, op_pubkey_for_exp, op_sha256, op_strlen, op_substr, op_subtract, op_unknown,
+    op_add, op_all, op_any, op_ash, op_coinid, op_concat, op_div, op_div_limit, op_divmod,
+    op_divmod_limit, op_gr, op_gr_bytes, op_logand, op_logior, op_lognot, op_logxor, op_lsh,
+    op_mod, op_mod_limit, op_modpow, op_multiply, op_not, op_point_add, op_pubkey_for_exp,
+    op_sha256, op_strlen, op_substr, op_subtract, op_unknown,
 };
 use crate::reduction::Response;
 use crate::secp_ops::{op_secp256k1_verify, op_secp256r1_verify};
+use crate::sha_tree_op::op_sha256_tree;
+
+// require integers passed to operators use canonical representation, meaning no
+// unnecessary leading zeros
+pub const CANONICAL_INTS: u32 = 0x0001;
 
 // unknown operators are disallowed
 // (otherwise they are no-ops with well defined cost)
@@ -29,9 +35,15 @@ pub const LIMIT_HEAP: u32 = 0x0004;
 // This is a hard-fork and should only be enabled when it activates
 pub const ENABLE_KECCAK_OPS_OUTSIDE_GUARD: u32 = 0x0100;
 
-// The default mode when running grnerators in mempool-mode (i.e. the stricter
+pub const DISABLE_OP: u32 = 0x200;
+
+// this flag enables the sha256tree op *outside* the softfork guard.
+// This is a hard-fork and should only be enabled when it activates.
+pub const ENABLE_SHA256_TREE: u32 = 0x0400;
+
+// The default mode when running generators in mempool-mode (i.e. the stricter
 // mode)
-pub const MEMPOOL_MODE: u32 = NO_UNKNOWN_OPS | LIMIT_HEAP;
+pub const MEMPOOL_MODE: u32 = NO_UNKNOWN_OPS | LIMIT_HEAP | DISABLE_OP | CANONICAL_INTS;
 
 fn unknown_operator(
     allocator: &mut Allocator,
@@ -131,8 +143,20 @@ impl Dialect for ChikDialect {
             16 => op_add,
             17 => op_subtract,
             18 => op_multiply,
-            19 => op_div,
-            20 => op_divmod,
+            19 => {
+                if (flags & DISABLE_OP) != 0 {
+                    op_div_limit
+                } else {
+                    op_div
+                }
+            }
+            20 => {
+                if (flags & DISABLE_OP) != 0 {
+                    op_divmod_limit
+                } else {
+                    op_divmod
+                }
+            }
             21 => op_gr,
             22 => op_ash,
             23 => op_lsh,
@@ -161,9 +185,22 @@ impl Dialect for ChikDialect {
             57 => op_bls_map_to_g2,
             58 => op_bls_pairing_identity,
             59 => op_bls_verify,
-            60 => op_modpow,
-            61 => op_mod,
+            60 => {
+                if (flags & DISABLE_OP) != 0 {
+                    return Err(EvalErr::Unimplemented(o))?;
+                } else {
+                    op_modpow
+                }
+            }
+            61 => {
+                if (flags & DISABLE_OP) != 0 {
+                    op_mod_limit
+                } else {
+                    op_mod
+                }
+            }
             62 if (flags & ENABLE_KECCAK_OPS_OUTSIDE_GUARD) != 0 => op_keccak256,
+            63 if (flags & ENABLE_SHA256_TREE) != 0 => op_sha256_tree,
             _ => {
                 return unknown_operator(allocator, o, argument_list, flags, max_cost);
             }
@@ -201,5 +238,9 @@ impl Dialect for ChikDialect {
 
     fn allow_unknown_ops(&self) -> bool {
         (self.flags & NO_UNKNOWN_OPS) == 0
+    }
+
+    fn flags(&self) -> u32 {
+        self.flags
     }
 }

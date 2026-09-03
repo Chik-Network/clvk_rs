@@ -1,9 +1,9 @@
 [package]
 name = "clvk_rs-fuzz"
-version = "0.16.0"
+version = "0.16.5"
 authors = ["Arvid Norberg <arvid@chiknetwork.com>"]
 publish = false
-edition = "2021"
+edition = "2024"
 
 [package.metadata]
 cargo-fuzz = true
@@ -11,9 +11,8 @@ cargo-fuzz = true
 [dependencies]
 libfuzzer-sys = { workspace = true }
 clvkr = { workspace = true, features = ["counters"] }
-chik-sha2 = { workspace = true }
-hex = { workspace = true }
 arbitrary = { workspace = true }
+clvk-fuzzing = { workspace = true }
 
 [[bin]]
 name = "fuzz_run_program"

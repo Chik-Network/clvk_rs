@@ -1,16 +1,11 @@
 #![no_main]
-mod make_tree;
-mod node_eq;
-mod serialized_len;
 
+use clvk_fuzzing::{compute_serialized_len, make_tree_limits, node_eq};
 use clvkr::reduction::Reduction;
 use clvkr::serde::TreeCache;
 use clvkr::traverse_path::traverse_path;
 use clvkr::{Allocator, NodePtr, SExp};
 use libfuzzer_sys::fuzz_target;
-use make_tree::make_tree_limits;
-use node_eq::node_eq;
-use serialized_len::compute_serialized_len;
 
 #[derive(PartialEq, Eq)]
 enum ReadOp {
@@ -21,7 +16,8 @@ enum ReadOp {
 fuzz_target!(|data: &[u8]| {
     let mut unstructured = arbitrary::Unstructured::new(data);
     let mut allocator = Allocator::new();
-    let (tree, node_count) = make_tree_limits(&mut allocator, &mut unstructured, 1000, true);
+    let (tree, node_count) =
+        make_tree_limits(&mut allocator, &mut unstructured, 1000, true).expect("out of memory");
     // uncomment this if you find an interesting test case to add to the benchmark
     /*
         let tmp = clvkr::serde::node_to_bytes_backrefs(&allocator, tree).unwrap();
@@ -48,17 +44,16 @@ fuzz_target!(|data: &[u8]| {
 
         // make sure we find a valid path to the node we're testing
         // This is the main test of the fuzzer
-        if let Some((node, serialized_len)) = node_to_test {
-            if let Some(path) = tree_cache.find_path(node) {
-                let Ok(Reduction(_, found_node)) = traverse_path(&allocator, &path, parse_stack)
-                else {
-                    panic!("invalid path");
-                };
-                // make sure the path we returned actually points to an atom
-                // that's equivalent
-                assert!(node_eq(&allocator, found_node, node));
-                assert!(serialized_len > path.len());
-            }
+        if let Some((node, serialized_len)) = node_to_test
+            && let Some(path) = tree_cache.find_path(node)
+        {
+            let Ok(Reduction(_, found_node)) = traverse_path(&allocator, &path, parse_stack) else {
+                panic!("invalid path");
+            };
+            // make sure the path we returned actually points to an atom
+            // that's equivalent
+            assert!(node_eq(&allocator, found_node, node));
+            assert!(serialized_len > path.len());
         }
 
         match tree_cache.find_path(node_to_write) {

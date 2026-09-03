@@ -1,8 +1,6 @@
 #![no_main]
 
-mod make_tree;
-mod node_eq;
-
+use clvk_fuzzing::{node_eq, ArbitraryClvkTree};
 use clvkr::allocator::{Allocator, NodePtr, SExp};
 use clvkr::error::Result;
 use clvkr::serde::node_from_bytes_backrefs;
@@ -10,12 +8,9 @@ use clvkr::serde::write_atom::write_atom;
 use clvkr::serde::ReadCacheLookup;
 use clvkr::serde::TreeCache;
 use clvkr::serde::{serialized_length, treehash, ObjectCache};
+use libfuzzer_sys::fuzz_target;
 use std::io::Cursor;
 use std::io::Write;
-
-use node_eq::node_eq;
-
-use libfuzzer_sys::fuzz_target;
 
 const BACK_REFERENCE: u8 = 0xfe;
 const CONS_BOX_MARKER: u8 = 0xff;
@@ -75,15 +70,21 @@ pub fn compare_back_references(allocator: &Allocator, node: NodePtr) -> Result<V
                     // we find paths of equal lengths (i.e. both should be the
                     // shortest path)
                     if p1.len() != p2.len() || p1[0].leading_zeros() != p2[0].leading_zeros() {
-                        panic!("inconsistent results, {p1:?} != {p2:?} serialized-length: {node_serialized_length}");
+                        panic!(
+                            "inconsistent results, {p1:?} != {p2:?} serialized-length: {node_serialized_length}"
+                        );
                     }
                 }
                 (None, None) => {}
                 (Some(p1), None) => {
-                    panic!("read_cache_lookup: {p1:?}, tree_cache: None serialized-length: {node_serialized_length}");
+                    panic!(
+                        "read_cache_lookup: {p1:?}, tree_cache: None serialized-length: {node_serialized_length}"
+                    );
                 }
                 (None, Some(p2)) => {
-                    panic!("read_cache_lookup: None, tree_cache: {p2:?} serialized-length: {node_serialized_length}");
+                    panic!(
+                        "read_cache_lookup: None, tree_cache: {p2:?} serialized-length: {node_serialized_length}"
+                    );
                 }
             };
         } else {
@@ -136,12 +137,9 @@ pub fn compare_back_references(allocator: &Allocator, node: NodePtr) -> Result<V
 
 // serializing with the regular compressed serializer should yield the same
 // result as using the incremental one (as long as it's in a single add() call).
-fuzz_target!(|data: &[u8]| {
-    let mut unstructured = arbitrary::Unstructured::new(data);
-    let mut allocator = Allocator::new();
-    let (program, _) = make_tree::make_tree(&mut allocator, &mut unstructured);
-
-    let b1 = compare_back_references(&allocator, program).unwrap();
-    let b2 = node_from_bytes_backrefs(&mut allocator, &b1).unwrap();
-    assert!(node_eq(&allocator, b2, program));
+fuzz_target!(|program: ArbitraryClvkTree| {
+    let mut a = program.allocator;
+    let b1 = compare_back_references(&a, program.tree).unwrap();
+    let b2 = node_from_bytes_backrefs(&mut a, &b1).unwrap();
+    assert!(node_eq(&a, b2, program.tree));
 });
