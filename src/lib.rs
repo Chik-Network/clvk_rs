@@ -22,7 +22,7 @@ pub mod treehash;
 
 pub use allocator::{Allocator, Atom, NodePtr, ObjectType, SExp};
 pub use chik_dialect::ChikDialect;
-pub use run_program::run_program;
+pub use run_program::{run_program, run_program_with_timeout};
 
 pub use chik_dialect::{ClvkFlags, MEMPOOL_MODE};
 
