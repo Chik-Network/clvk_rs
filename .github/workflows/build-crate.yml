@@ -28,7 +28,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up rusts
-        uses: dtolnay/rust-toolchain@1.96.0
+        uses: dtolnay/rust-toolchain@1.92.0
 
       - name: fmt
         run: cargo fmt --all -- --files-with-diff --check
@@ -37,7 +37,7 @@ jobs:
         run: cargo clippy --workspace --all-features --all-targets -- -D warnings
 
       - name: Install cargo-machete
-        run: cargo install cargo-machete
+        run: cargo install cargo-machete@0.9.2
 
       - name: Unused dependencies
         run: cargo machete
