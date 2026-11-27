@@ -5,7 +5,7 @@ use clvkr::error::EvalErr;
 use clvkr::run_program::run_program;
 use clvkr::{ChikDialect, ClvkFlags};
 use hex_literal::hex;
-use rand::{RngCore, SeedableRng, rngs::StdRng};
+use rand::{Rng, SeedableRng, rngs::StdRng};
 use std::fs::{File, create_dir_all};
 use std::io::Write;
 use std::ops::Range;

@@ -5,7 +5,7 @@ use clvk_fuzzing::{make_clvk_program, make_tree};
 use clvkr::allocator::Allocator;
 use clvkr::serde::node_to_bytes;
 use rand::rngs::StdRng;
-use rand::{RngCore, SeedableRng};
+use rand::{Rng, SeedableRng};
 
 #[derive(Parser)]
 struct Args {

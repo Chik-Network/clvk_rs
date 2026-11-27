@@ -1,9 +1,10 @@
 use clvkr::allocator::Allocator;
 use clvkr::serde::node_from_bytes_backrefs;
 use clvkr::serde_2026::{deserialize_2026, serialize_2026};
+use std::hint::black_box;
 
 const BENCH_MAX_ATOM_LEN: usize = 1 << 20;
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
 use std::include_bytes;
 use std::time::Duration;
 
